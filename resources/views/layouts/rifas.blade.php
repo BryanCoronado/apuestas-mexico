@@ -13,9 +13,16 @@
 <body class="rifas-body">
     <header class="site-header">
         <div class="site-header__inner">
+            {{-- Móvil: 2 enlaces a los lados del logo --}}
+            <a href="#" class="site-nav__mobile site-nav__mobile--left">MÉTODOS DE PAGO</a>
+
             <a href="{{ route('ruleta.index') }}" class="site-header__logo">
                 <img src="{{ asset('Logotipo-1.png') }}" alt="Rifas Económicas Guadalajara">
             </a>
+
+            <a href="#" class="site-nav__mobile site-nav__mobile--right">BOLETOS DISPONIBLES</a>
+
+            {{-- Escritorio: menú completo --}}
             <nav class="site-nav" aria-label="Principal">
                 <a href="#">Inicio</a>
                 <a href="#">Preguntas Frecuentes</a>

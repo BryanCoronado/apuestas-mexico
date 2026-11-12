@@ -18,7 +18,7 @@
         $sorteoRibbon = implode(' ', mb_str_split($sorteoDefault['codigo']));
     @endphp
 
-    <div class="ruleta-app" id="ruleta-app" data-boletos='@json($boletos)'>
+    <div class="ruleta-app" id="ruleta-app" data-ganador-url="{{ route('ruleta.ganador') }}">
         {{-- Paso 1: entrada --}}
         <section class="ruleta-entrada" id="step-entrada">
             <button type="button" class="btn btn--entrar" id="btn-entrar">ENTRAR</button>
@@ -29,8 +29,10 @@
             <div class="ruleta-form">
                 <label class="sr-only" for="sorteo-select">Sorteo</label>
                 <select id="sorteo-select" class="ruleta-input">
+                    <option value="" selected disabled>SELECCIONA RIFA</option>
                     @foreach ($sorteos as $sorteo)
-                        <option value="{{ $sorteo['codigo'] }}"
+                        <option value="{{ $sorteo['id'] }}"
+                            data-codigo="{{ $sorteo['codigo'] }}"
                             data-inicio="{{ \Carbon\Carbon::parse($sorteo['inicio'])->format('Y-m-d H:i') }}"
                             data-fin="{{ \Carbon\Carbon::parse($sorteo['fin'])->format('Y-m-d H:i') }}"
                             data-premio="{{ $sorteo['premio_url'] }}">
@@ -40,17 +42,17 @@
                 </select>
 
                 <label class="sr-only" for="fecha-inicio">Fecha de inicio</label>
-                <input type="text" class="ruleta-input" id="fecha-inicio"
+                <input type="text" class="ruleta-input" id="fecha-inicio" placeholder="Fecha inicio"
                     value="{{ \Carbon\Carbon::parse($sorteoDefault['inicio'])->format('Y-m-d H:i') }}">
 
                 <label class="sr-only" for="fecha-fin">Fecha de fin</label>
-                <input type="text" class="ruleta-input" id="fecha-fin"
+                <input type="text" class="ruleta-input" id="fecha-fin" placeholder="Fecha fin"
                     value="{{ \Carbon\Carbon::parse($sorteoDefault['fin'])->format('Y-m-d H:i') }}">
 
                 <label class="sr-only" for="min-boletos">Mínimo de boletos pagados</label>
                 <input type="number" min="0" class="ruleta-input" id="min-boletos" placeholder="Mín. boletos pagados">
 
-                <button type="button" class="btn btn--iniciar" id="btn-iniciar">INICIAR</button>
+                <button type="button" class="btn btn--iniciar" id="btn-iniciar" disabled>INICIAR</button>
             </div>
 
             <div class="ruleta-stage">
@@ -85,7 +87,7 @@
                                 @if (! $sorteoDefault['premio_url']) hidden @endif>
                             <div class="boleto__premio-vacio" id="premio-vacio"
                                 @if ($sorteoDefault['premio_url']) hidden @endif>
-                                <span>Coloca la imagen del premio en <code>public/premio-demo.jpg</code></span>
+                                <span>Sube la imagen del premio desde el Panel de Rifas</span>
                             </div>
                         </div>
 

@@ -22,13 +22,6 @@
     const premioImg = document.getElementById('premio-img');
     const premioVacio = document.getElementById('premio-vacio');
 
-    let boletos = [];
-    try {
-        boletos = JSON.parse(app.dataset.boletos || '[]');
-    } catch (e) {
-        boletos = [];
-    }
-
     const pickerOpciones = {
         enableTime: true,
         dateFormat: 'Y-m-d H:i',
@@ -55,20 +48,33 @@
         }
     }
 
+    let spinTimer = null;
+
     function sorteoActual() {
         return sorteoSelect?.selectedOptions?.[0] || null;
     }
 
+    function puedeIniciar() {
+        return Boolean(sorteoSelect?.value);
+    }
+
+    function sincronizarBoton() {
+        if (btnIniciar && !spinTimer) {
+            btnIniciar.disabled = !puedeIniciar();
+        }
+    }
+
     function actualizarSorteo() {
         const opt = sorteoActual();
-        if (!opt) {
+        if (!opt || !opt.value) {
+            sincronizarBoton();
             return;
         }
 
         setFecha(pickerInicio, fechaInicio, opt.dataset.inicio);
         setFecha(pickerFin, fechaFin, opt.dataset.fin);
 
-        const espaciado = opt.value.split('').join(' ');
+        const espaciado = (opt.dataset.codigo || '').split('').join(' ');
         app.querySelectorAll('[data-codigo]').forEach((el) => {
             el.textContent = espaciado;
         });
@@ -84,37 +90,28 @@
                 premioVacio.hidden = false;
             }
         }
+
+        sincronizarBoton();
     }
 
-    function esPagado(status) {
-        return String(status || '').toUpperCase() === 'PAGADO';
-    }
+    async function elegirGanador() {
+        const params = new URLSearchParams({
+            rifa: sorteoSelect?.value || '',
+            inicio: fechaInicio?.value || '',
+            fin: fechaFin?.value || '',
+            minimo: minBoletos?.value || '0',
+        });
 
-    function elegirGanador() {
-        const codigo = sorteoSelect?.value;
-        const min = parseInt(minBoletos?.value || '', 10);
+        const respuesta = await fetch(`${app.dataset.ganadorUrl}?${params}`, {
+            headers: { Accept: 'application/json' },
+        });
+        const datos = await respuesta.json().catch(() => ({}));
 
-        let pool = boletos.filter((b) => b.sorteo === codigo);
-
-        if (!Number.isNaN(min) && min > 0) {
-            const pagados = pool.filter((b) => esPagado(b.status));
-            if (pagados.length > 0) {
-                pool = pagados;
-            }
+        if (!respuesta.ok) {
+            throw new Error(datos.message || 'No se pudo elegir un ganador.');
         }
 
-        if (pool.length === 0) {
-            return {
-                boleto: String(Math.floor(Math.random() * 100000)).padStart(5, '0'),
-                nombre: '',
-                apellido: '',
-                estado: '',
-                status: 'NO PAGADO',
-                compra: '-',
-            };
-        }
-
-        return pool[Math.floor(Math.random() * pool.length)];
+        return datos.ganador;
     }
 
     function pintarGanador(g) {
@@ -135,14 +132,15 @@
         });
     }
 
-    let spinTimer = null;
-
     function iniciar() {
-        if (spinTimer) {
+        if (spinTimer || !puedeIniciar()) {
             return;
         }
 
         const ganador = elegirGanador();
+        const giro = new Promise((resolve) => {
+            spinTimer = window.setTimeout(resolve, SPIN_MS);
+        });
 
         btnIniciar.disabled = true;
         boletoCard.hidden = true;
@@ -152,13 +150,18 @@
         ruletaGif.setAttribute('src', '');
         ruletaGif.setAttribute('src', src);
 
-        spinTimer = window.setTimeout(() => {
-            pintarGanador(ganador);
+        Promise.allSettled([ganador, giro]).then(([resultado]) => {
             ruletaWrap.hidden = true;
-            boletoCard.hidden = false;
-            btnIniciar.disabled = false;
             spinTimer = null;
-        }, SPIN_MS);
+            sincronizarBoton();
+
+            if (resultado.status === 'fulfilled') {
+                pintarGanador(resultado.value);
+                boletoCard.hidden = false;
+            } else {
+                window.alert(resultado.reason.message);
+            }
+        });
     }
 
     btnEntrar?.addEventListener('click', () => {
@@ -175,4 +178,5 @@
     btnIniciar?.addEventListener('click', iniciar);
 
     actualizarSorteo();
+    sincronizarBoton();
 })();
